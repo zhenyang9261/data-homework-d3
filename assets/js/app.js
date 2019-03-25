@@ -63,14 +63,27 @@ function renderCircles(circlesGroup, newXScale, chosenXaxis) {
   return circlesGroup;
 }
 
+function renderTexts(textsGroup, newXScale, chosenXaxis) {
+
+  textsGroup.transition()
+    .duration(1000)
+    .attr("dx", d => newXScale(d[chosenXAxis]));
+
+  return textsGroup;
+}
+
 // function used for updating circles group with new tooltip
 function updateToolTip(chosenXAxis, circlesGroup) {
-
+  
+  var label;
   if (chosenXAxis === "poverty") {
-    var label = "In Poverty (%)";
+    label = "In Poverty (%)";
+  }
+  else if (chosenXAxis === "age") {
+    label = "Age (Median)";
   }
   else {
-    var label = "Age (Median)";
+    label = "Household Income (Media)";
   }
 
   var toolTip = d3.tip()
@@ -96,13 +109,15 @@ function updateToolTip(chosenXAxis, circlesGroup) {
 // Retrieve data from the CSV file and execute everything below
 //d3.csv("assets/data/data.csv", function(err, factData) {
   d3.csv("assets/data/data.csv").then(function(factData) {
-  console.log(factData);
+  
+    console.log(factData);
   //if (err) throw err;
   
   // parse data
   factData.forEach(function(data) {
     data.poverty = +data.poverty;
     data.age = +data.age;
+    data.income = +data.income;
     data.obesity = +data.obesity;
   });
 
@@ -138,8 +153,29 @@ function updateToolTip(chosenXAxis, circlesGroup) {
     .attr("cy", d => yLinearScale(d.obesity))
     .attr("r", 10)
     .attr("fill", "lightblue")
-    .attr("opacity", ".5");
-
+    .attr("opacity", "1");
+    
+  var textsGroup = chartGroup.selectAll("text")
+     .data(factData)
+     .enter()
+     // We return the abbreviation to .text, which makes the text the abbreviation.
+     .append("text")
+     .text(function(d) {
+       return d.abbr;
+     })
+     // Now place the text using our scale.
+     .attr("dx", function(d) {
+       return xLinearScale(d[chosenXAxis]);
+     })
+     .attr("dy", function(d) {
+       // When the size of the text is the radius,
+       // adding a third of the radius to the height
+       // pushes it into the middle of the circle.
+       return yLinearScale(d.obesity);
+     })
+     .attr("class", "stateText")
+     .attr("font-size", 9);
+ 
   // Create group for  2 x- axis labels
   var labelsGroup = chartGroup.append("g")
     .attr("transform", `translate(${width / 2}, ${height + 20})`);
@@ -157,6 +193,13 @@ function updateToolTip(chosenXAxis, circlesGroup) {
     .attr("value", "age") // value to grab for event listener
     .classed("inactive", true)
     .text("Age (Median)");
+  
+  var incomeLabel = labelsGroup.append("text")
+    .attr("x", 0)
+    .attr("y", 60)
+    .attr("value", "income") // value to grab for event listener
+    .classed("inactive", true)
+    .text("Household Income (Median)");
 
   // append y axis
   chartGroup.append("text")
@@ -191,6 +234,7 @@ function updateToolTip(chosenXAxis, circlesGroup) {
 
         // updates circles with new x values
         circlesGroup = renderCircles(circlesGroup, xLinearScale, chosenXAxis);
+        textsGroup = renderTexts(textsGroup, xLinearScale, chosenXAxis);
 
         // updates tooltips with new info
         circlesGroup = updateToolTip(chosenXAxis, circlesGroup);
@@ -203,18 +247,34 @@ function updateToolTip(chosenXAxis, circlesGroup) {
           povertyLabel
             .classed("active", false)
             .classed("inactive", true);
+          incomeLabel
+            .classed("active", false)
+            .classed("inactive", true);
+        }
+        else if (chosenXAxis === "poverty") {
+          povertyLabel
+            .classed("active", true)
+            .classed("inactive", false);
+          ageLabel
+            .classed("active", false)
+            .classed("inactive", true);
+          incomeLabel
+            .classed("active", false)
+            .classed("inactive", true);
         }
         else {
+          incomeLabel
+            .classed("active", true)
+            .classed("inactive", false);
           ageLabel
             .classed("active", false)
             .classed("inactive", true);
           povertyLabel
-            .classed("active", true)
-            .classed("inactive", false);
+            .classed("active", false)
+            .classed("inactive", true);
         }
       }
     });
-    console.log('line 215');
 
 });
 
